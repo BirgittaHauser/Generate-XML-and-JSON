@@ -105,7 +105,7 @@ Call WrtXML2IFS_Create(Table2XML('SALES', 'HSCOMMON10',
                                  ParAsAttributes => 'Y'),
                         '/home/Hauser/Umsatz20180224.xml'); </pre> 
 
-<b>Note:<b>
+<b>Note:</b>
 The stored procedure <b>WrtXML2IFS_Create<b> is also an open source stored procedure. It will write the result from the TABLE2XML function into the IFS.
                  
 ### TABLE2JSON – Create JSON Data for a table containing all columns
