@@ -106,7 +106,8 @@ Call WrtXML2IFS_Create(Table2XML('SALES', 'HSCOMMON10',
                         '/home/Hauser/Umsatz20180224.xml'); </pre> 
 
 <b>Note:</b>
-The stored procedure <b>WrtXML2IFS_Create<b> is also an open source stored procedure. It will write the result from the TABLE2XML function into the IFS.
+The <b>WrtXML2IFS_Create</b> stored procedure is open source. 
+The <b>WrtXML2IFS_Create</b> stored procedure will write the result from the TABLE2XML function into the IFS.
                  
 ### TABLE2JSON – Create JSON Data for a table containing all columns
 Parameter:
@@ -148,8 +149,8 @@ Parameter:
 
 <pre>
 Values(Table2JSON('ADDRESSX', 'HSCOMMON10',
-                  ParWhere       => 'ZipCode between ''70000'' and ''80000''',
-                  ParOrderBy     => 'ZipCode, CustNo'));</pre>   
+                  ParWhere     => 'ZipCode between ''70000'' and ''80000''',
+                  ParOrderBy   => 'ZipCode, CustNo'));</pre>   
  
 <pre>
 Call WrtJSON2IFS_Create(Table2JSON('SALES', 'HSCOMMON10', 
@@ -178,4 +179,34 @@ For the passed table a list of all columns separated by a comma is generated wit
 from the SYSCOLUMS view.
 With this information and the passed parameter information a XMLGROUP Statement is performed that returns the XML data.
 
+The structure of the resulting XML document is the same as the structure of the XML document returned by the Table2XML UDF.
+<table>
+   <tr><td><b>Attention:</b></td><td>All Columns returned by the SELECT statement need to be named.<br>
+	                             All Column names are converted into uppercase
+	                             Column names embedded in double quotes are currently not supported</td></tr>
+</table	
+
 Example:             
+<pre>Values(Select2XML('Select * from HSCOMMON10.Sales Where Year(SalesDate) = 2017'));
+</pre>
+
+<pre>
+Values(Select2XML('Select Year(SalesDate) as SalesYear, CustNo, Sum(Amount) Total 
+                     From Sales
+                     Where CustNo in (''10001'', ''10003'')
+                     Group By Year(SalesDate), CustNo
+                     Order By SalesYear',
+                     '"SalesCustYear"', '"CustYear"', 'Y'));
+</pre>
+
+<pre>
+Values(Select2XML('With Pos as (Select Company, OrderNo, Count(*) NbrOfPositions
+                                   from OrderDetX
+                                   Group By Company, OrderNo)
+                   Select H.Company, H.OrderNo, H.CustNo, CustName1, 
+                          Trim(ZipCode) concat '' - '' concat Trim(City) as ZipCodeCity,
+                          NbrOfPositions  
+                      from OrderHdrx h join Addressx a on a.CustNo = h.CustNo
+                      join Pos p on     h.Company = p.Company
+                                    and h.OrderNo = p.OrderNo'));             
+</pre>
