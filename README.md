@@ -72,10 +72,11 @@ from the SYSCOLUMS view.
 With this information and the passed parameter information a XMLGROUP Statement is performed that returns the XML data.
 
 The structure of the resulting XML looks as follows:
-<pre><rowset>
-        <row><COLUMN1>Value1</COLUMN1><COLUMN2>Value2</COLUMN2>... more columns...<COLUMNN>ValueN</COLUMNN><row>
+<pre>&lt;rowset&gt;
+        &lt;row&gt;&lt;COLUMN1>Value1&lt;/COLUMN1&gt;&lt;COLUMN2&gt;Value2&lt;/COLUMN2&gt;
+                ... more columns...&lt;COLUMNN&gt;ValueN&lt;/COLUMNN&gt;&lt;row&gt;
         ... more rows
-     </rowset>   
+     &lt/rowset&gt;   
 </pre>
 
 If the ParAsAttributes parameter is passed with 'Y' the following structure is returned:
