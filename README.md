@@ -4,9 +4,14 @@ Generate XML and JSON Data for a Db2 Table or View or for an SELECT-Statement
 ## Description
 This tool includes: 
 <Table>
-<tr><td>SQL User Defined Function  </td><td><b>TABLE2XML </b></td><td> for generating the XML data for a complete Db2 table</td></tr>
-<tr><td>SQL User Defined Function  </td><td><b>JSON2XML  </b></td><td> for generating the JSON data 
-                                                                  for a complete Db2 table</td></tr>
+<tr><td>SQL User Defined Function  </td><td><b>TABLE2XML  </b></td><td> for generating the XML data 
+                                                                        for a complete Db2 table</td></tr>
+<tr><td>SQL User Defined Function  </td><td><b>TABLE2JSON </b></td><td> for generating the JSON data 
+                                                                        for a complete Db2 table</td></tr>
+<tr><td>SQL User Defined Function  </td><td><b>SELECT2XML </b></td><td> for generating the XML data
+                                                                        for an SQL Select Statement</td></tr>
+<tr><td>SQL User Defined Function  </td><td><b>SELECT2JSON</b></td><td> for generating the JSON data
+                                                                        for an SQL Select Statement</td></tr>
 </Table>
 
 ## Author
@@ -15,6 +20,9 @@ This tool includes:
 Since 2002 she has frequently spoken at the COMMON User Groups and other IBM i and Power Conferences in Germany, other European Countries, USA and Canada. 
 
 In addition, she is co-author of two IBM Redbooks and also the author of several articles and papers focusing on RPG and SQL for a German publisher, IBM DeveloperWorks and IT Jungle.
+
+## Prerequisites
+Minimum IBM i Release: 7.2 TR7 (or 7.3 TR3)
 
 ## Compile
 
@@ -62,6 +70,20 @@ Description:
 For the passed table a list of all columns separated by a comma is generated with the LIST_AGG Aggregate function 
 from the SYSCOLUMS view.
 With this information and the passed parameter information a XMLGROUP Statement is performed that returns the XML data.
+
+The structure of the resulting XML looks as follows:
+<pre><rowset>
+        <row><COLUMN1>Value1</COLUMN1><COLUMN2>Value2</COLUMN2>... more columns...<COLUMNN>ValueN</COLUMNN><row>
+        ... more rows
+     </rowset>   
+</pre>
+
+If the ParAsAttributes parameter is passed with 'Y' the following structure is returned:
+<pre><rowset>
+        <row COLUMN1="Value1" COLUMN2="Value2" ... more columns ... COLUMNN="ValueN" />
+        ... more rows
+     <rowset>
+ </pre>     
 
 Example:             
 <pre>Values(Table2XML('ADDRESSX', 'HSCOMMON10'));</pre>    
@@ -113,4 +135,26 @@ Call WrtJSON2IFS_Create(Table2JSON('SALES', 'HSCOMMON10',
                                    ParWhere    => 'Year(SalesDate) = 2017', 
                                    ParOrderBy  => 'SalesDate, CustNo Desc',
                                    ParRoot     => '"Sales"'),         
-                        '/home/Hauser/Umsatz20180224.json');</pre>             
+                        '/home/Hauser/Umsatz20180224.json');</pre> 
+                        
+### SELECT2XML – Create an XML Document based on an Select-Statement
+Parameter: 
+<table>  
+<tr><th>Parameter Name</th><th>Data Type/Length</th><th>Description</th></tr>  
+<tr><td><b>ParSelect       </b></td><td>VarChar(32700)  </td><td>SQL Select-Statement to be converted into XML</td><tr>
+<tr><td><b>ParRoot         </b></td><td>VarChar(128)    </td><td>Name of the Root Element<br> 
+                                                                 (Optional --> Default = ‘”rowset”’)</td><tr> 
+<tr><td><b>ParRow          </b></td><td>VarChar(128)    </td><td>Name of the Row Element 
+                                                                 (Optional --> Default = ‘”row”’)</td><tr>
+<tr><td><b>ParAsAttributes </b></td><td>VarChar(1)      </td><td>Y = single empty element per row,<br> 
+                                                                     all column data are passed as attributes<br> 
+                                                                 (Optional --> Default = ‘’)
+</table>  
+
+Description:
+Almost any SELECT-Statement including Common Table Expressions or Nested Sub-Selects
+For the passed table a list of all columns separated by a comma is generated with the LIST_AGG Aggregate function 
+from the SYSCOLUMS view.
+With this information and the passed parameter information a XMLGROUP Statement is performed that returns the XML data.
+
+Example:             
