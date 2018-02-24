@@ -66,7 +66,7 @@ Parameter:
 	                                                             (Optional --> Default = ‘’)</td></tr>
 </table>  
 
-####Description:
+#### Description:
 For the passed table a list of all columns separated by a comma is generated with the LIST_AGG Aggregate function 
 from the SYSCOLUMS view.
 With this information and the passed parameter information a XMLGROUP Statement is performed that returns the XML data.
@@ -88,7 +88,7 @@ If the ParAsAttributes parameter is passed with 'Y' the following structure is r
 &lt;rowset&gt;
  </pre>     
 
-####Example:             
+#### Example:             
 <pre>Values(Table2XML('ADDRESSX', 'HSCOMMON10'));</pre>    
 
 <pre>
@@ -125,7 +125,7 @@ Parameter:
                                                      (Optional => Default = ‘’)</td><tr>
 </table>
                
- ####Description:
+ #### Description:
  For the passed table a list containing with columns separated by a comma is generated with the ListAgg Aggregate function 
  from the SYSCOLUMS view.
  With this information and the passed parameter information and a composition of the JSON_ArrayAgg and JSON_Object functions
@@ -146,7 +146,7 @@ Parameter:
   }         
   </pre>
 
-####Examples:             
+#### Examples:             
 <pre>Values(Table2JSON('ADDRESSX', 'HSCOMMON10'));</pre>    
 
 <pre>
@@ -175,7 +175,7 @@ Parameter:
 	                                                         (Optional --> Default = ‘’)</td><tr>
 </table>  
 
-####Description:
+#### Description:
 Almost any SELECT-Statement including Common Table Expressions or Nested Sub-Selects
 For the passed table a list of all columns separated by a comma is generated with the LIST_AGG Aggregate function 
 from the SYSCOLUMS view.
@@ -188,7 +188,7 @@ The structure of the resulting XML document is the same as the structure of the 
 	                             Column names embedded in double quotes are currently not supported</td></tr>
 </table	
 
-####Example:             
+#### Example:             
 <pre>Values(Select2XML('Select * from HSCOMMON10.Sales Where Year(SalesDate) = 2017'));
 </pre>
 
