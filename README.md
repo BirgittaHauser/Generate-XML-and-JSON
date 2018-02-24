@@ -134,11 +134,11 @@ Parameter:
 	"Table": "TABLENAME",
 	"Schema": "TBLSCHEMA",
 	"Data": [{
-		        "COLUMN1": "Value1",
-		        "COLUMN2": 123.45,
-            ... More Columns
-		       },
-           ... more rows
+		  "COLUMN1": "Value1",
+		  "COLUMN2": 123.45,
+                  ... More Columns
+		 },
+                 ... more rows
           ]
   }         
   </pre>
