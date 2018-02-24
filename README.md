@@ -75,7 +75,7 @@ The structure of the resulting XML looks as follows:
 <pre>
 &lt;rowset&gt;
        &lt;row&gt;&lt;COLUMN1>Value1&lt;/COLUMN1&gt;&lt;COLUMN2&gt;Value2&lt;/COLUMN2&gt;
-                   ... more columns...&lt;COLUMNN&gt;ValueN&lt;/COLUMNN&gt;&lt;row&gt;
+             ... more columns...&lt;COLUMNN&gt;ValueN&lt;/COLUMNN&gt;&lt;row&gt;
        ... more rows
 &lt/rowset&gt;   
 </pre>
