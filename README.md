@@ -63,7 +63,7 @@ Parameter:
                                                                  (Optional --> Default = ‘”row”’)</td><tr>
 <tr><td><b>ParAsAttributes </b></td><td>VarChar(1)      </td><td>Y = single empty element per row,<br> 
                                                                      all column data are passed as attributes<br> 
-                                                                 (Optional --> Default = ‘’)
+	                                                             (Optional --> Default = ‘’)</td></tr>
 </table>  
 
 Description:
@@ -121,7 +121,7 @@ Parameter:
 <tr><td><b>ParOrderBy   </b></td><td>VarChar(1024)   </td><td>Order by clause (without leading ORDER BY)<br> 
                                                      for sorting the result<br> 
                                                      (Optional => Default = ‘’)</td><tr>
-  </table>
+</table>
                
  Description:
  For the passed table a list containing with columns separated by a comma is generated with the ListAgg Aggregate function 
@@ -144,8 +144,8 @@ Parameter:
   }         
   </pre>
 
- Example:             
- <pre>Values(Table2JSON('ADDRESSX', 'HSCOMMON10'));</pre>    
+Examples:             
+<pre>Values(Table2JSON('ADDRESSX', 'HSCOMMON10'));</pre>    
 
 <pre>
 Values(Table2JSON('ADDRESSX', 'HSCOMMON10',
@@ -170,7 +170,7 @@ Parameter:
                                                                  (Optional --> Default = ‘”row”’)</td><tr>
 <tr><td><b>ParAsAttributes </b></td><td>VarChar(1)      </td><td>Y = single empty element per row,<br> 
                                                                      all column data are passed as attributes<br> 
-                                                                 (Optional --> Default = ‘’)
+	                                                         (Optional --> Default = ‘’)</td><tr>
 </table>  
 
 Description:
