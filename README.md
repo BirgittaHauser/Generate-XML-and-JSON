@@ -45,7 +45,7 @@ It is also possible to run the SQL scripts from the b>RUN SQL SCRIPTING facility
 ## Program and Procedure Descriptions:
 
 ### TABLE2XML – Create an XML Document for a table with all columns
-Parameter: 
+#### Parameter: 
 <table>  
 <tr><th>Parameter Name</th><th>Data Type/Length</th><th>Description</th></tr>  
 <tr><td><b>ParTable        </b></td><td>VarChar(128)    </td><td>Table (SQL Name) to be converted into XML</td><tr>
@@ -112,7 +112,7 @@ Call WrtXML2IFS_Create(Table2XML('SALES', 'HSCOMMON10',
 </table>	
                  
 ### TABLE2JSON – Create JSON Data for a table containing all columns
-Parameter:
+#### Parameter:
 <table>  
 <tr><th>Parameter Name</th><th>Data Type/Length</th><th>Description</th></tr>  
 <tr><td><b>ParTable     </b></td><td>VarChar(128)    </td><td>Table (SQL Name) to be converted into JSON</td><tr>
@@ -161,8 +161,8 @@ Call WrtJSON2IFS_Create(Table2JSON('SALES', 'HSCOMMON10',
                                    ParRoot     => '"Sales"'),         
                         '/home/Hauser/Umsatz20180224.json');</pre> 
                         
-### SELECT2XML – Create an XML Document based on an Select-Statement
-Parameter: 
+### SELECT2XML – Create a XML document based on an Select-Statement
+#### Parameter: 
 <table>  
 <tr><th>Parameter Name</th><th>Data Type/Length</th><th>Description</th></tr>  
 <tr><td><b>ParSelect       </b></td><td>VarChar(32700)  </td><td>SQL Select-Statement to be converted into XML</td><tr>
@@ -176,10 +176,7 @@ Parameter:
 </table>  
 
 #### Description:
-Almost any SELECT-Statement including Common Table Expressions or Nested Sub-Selects
-For the passed table a list of all columns separated by a comma is generated with the LIST_AGG Aggregate function 
-from the SYSCOLUMS view.
-With this information and the passed parameter information a XMLGROUP Statement is performed that returns the XML data.
+Almost any SELECT-Statement including those SQL statements that include Common Table Expressions or Nested Sub-Selects can be converted.
 
 The structure of the resulting XML document is the same as the structure of the XML document returned by the Table2XML UDF.
 <table>
@@ -192,6 +189,8 @@ The structure of the resulting XML document is the same as the structure of the 
 <pre>Values(Select2XML('Select * from HSCOMMON10.Sales Where Year(SalesDate) = 2017'));
 </pre>
 
+Select Statement with Group By and Order By Clauses.
+Generated columns Year(SalesDate) and Sum(Amount) are named, i.e. Year(SalesDate) --> SalesYear and Sum(Amount) 
 <pre>
 Values(Select2XML('Select Year(SalesDate) as SalesYear, CustNo, Sum(Amount) Total 
                      From Sales
@@ -201,6 +200,7 @@ Values(Select2XML('Select Year(SalesDate) as SalesYear, CustNo, Sum(Amount) Tota
                      '"SalesCustYear"', '"CustYear"', 'Y'));
 </pre>
 
+Select Statement with Common Table Expression and multiple joins within the final select.
 <pre>
 Values(Select2XML('With Pos as (Select Company, OrderNo, Count(*) NbrOfPositions
                                    from OrderDetX
@@ -212,3 +212,49 @@ Values(Select2XML('With Pos as (Select Company, OrderNo, Count(*) NbrOfPositions
                       join Pos p on     h.Company = p.Company
                                     and h.OrderNo = p.OrderNo'));             
 </pre>
+
+### SELECT2JSON – Create JSON Data based on an Select-Statement
+#### Parameter: 
+<table>  
+<tr><th>Parameter Name</th><th>Data Type/Length</th><th>Description</th></tr>  
+<tr><td><b>ParSelect       </b></td><td>VarChar(32700)  </td><td>SQL Select-Statement to be converted into XML</td><tr>
+</table>  
+
+#### Description:
+Almost any SELECT-Statement including those with Common Table Expressions or Nested Sub-Selects can be converted
+
+The structure of the resulting JSON data is the same as the structure of the JSON data returned by the Table2JSON UDF.
+<table>
+   <tr><td><b>Attention:</b></td><td>All Columns returned by the SELECT statement need to be named.<br>
+	                             All Column names are converted into uppercase
+	                             Column names embedded in double quotes are currently not supported</td></tr>
+</table	
+
+#### Example:             
+<pre>
+Values(Select2JSON('Select * from HSCOMMON10.Sales Where Year(SalesDate) = 2018'));
+</pre>
+
+Select Statement with Group By and Order By Clauses.
+Generated columns Year(SalesDate) and Sum(Amount) are named, i.e. Year(SalesDate) --> SalesYear and Sum(Amount) 
+<pre>
+Values(Select2JSON('Select Year(SalesDate) as SalesYear, CustNo, Sum(Amount) Total 
+                     From Sales
+                     Where CustNo in (''10001'', ''10003'')
+                     Group By Year(SalesDate), CustNo
+                     Order By SalesYear'));
+</pre>		     
+
+Select Statement with Group By and Order By Clauses.
+Generated columns Year(SalesDate) and Sum(Amount) are named, i.e. Year(SalesDate) --> SalesYear and Sum(Amount) 
+<pre>
+Values(Select2JSON('With Pos as (Select Company, OrderNo, Count(*) NbrOfPositions
+                                   from OrderDetX
+                                   Group By Company, OrderNo)
+                   Select H.Company, H.OrderNo, H.CustNo, CustName1, 
+                          Trim(ZipCode) concat '' - '' concat Trim(City) as ZipCodeCity,
+                          NbrOfPositions  
+                      from OrderHdrx h join Addressx a on a.CustNo = h.CustNo
+                      join Pos p on     h.Company = p.Company
+                                    and h.OrderNo = p.OrderNo'));   
+</pre>				    
