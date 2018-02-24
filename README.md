@@ -84,7 +84,7 @@ If the ParAsAttributes parameter is passed with 'Y' the following structure is r
 <pre>
 &lt;rowset&gt;
     &lt;row COLUMN1="Value1" COLUMN2="Value2" ... more columns ... COLUMNN="ValueN" /&gt;
-        ... more rows
+         ... more rows
 &lt;rowset&gt;
  </pre>     
 
@@ -104,6 +104,9 @@ Call WrtXML2IFS_Create(Table2XML('SALES', 'HSCOMMON10',
                                  ParRow          => '"SalesRow"',
                                  ParAsAttributes => 'Y'),
                         '/home/Hauser/Umsatz20180224.xml'); </pre> 
+
+<b>Note:<b>
+The stored procedure <b>WrtXML2IFS_Create<b> is also an open source stored procedure. It will write the result from the TABLE2XML function into the IFS.
                  
 ### TABLE2JSON – Create JSON Data for a table containing all columns
 Parameter:
@@ -124,6 +127,21 @@ Parameter:
  from the SYSCOLUMS view.
  With this information and the passed parameter information and a composition of the JSON_ArrayAgg and JSON_Object functions
  the JSON Data is created.
+
+ The structure of the resulting JSON data looks as follows:
+ <pre>
+ {
+	"Table": "TABLENAME",
+	"Schema": "TBLSCHEMA",
+	"Data": [{
+		        "COLUMN1": "Value1",
+		        "COLUMN2": 123.45,
+            ... More Columns
+		       },
+           ... more rows
+          ]
+  }         
+  </pre>
 
  Example:             
  <pre>Values(Table2JSON('ADDRESSX', 'HSCOMMON10'));</pre>    
