@@ -1,94 +1,121 @@
------------------------------------------------------------------                                                       
--- UDF: Convert a Table into a JSON Document                                                                            
--- Parameters: ParTable         --> Table (SQL Name) to be converted                                                    
---             ParSchema        --> Schema (SQL Name) of the table to be converted                                      
---             ParWhere         --> Optional:  WHERE conditions for reducing the data                                   
---                                             leading WHERE must not be specified                                      
---             ParOrderBy       --> Optional:  ORDER BY clause for returning the data in a predefined sequence          
---                                             leading ORDER BY must not be specified                                   
------------------------------------------------------------------                                                       
-Create or Replace Function TABLE2JSON(                                                                                  
-                           PARTABLE         VARCHAR(128),                                                               
-                           PARSCHEMA        Varchar(128),                                                               
-                           PARWHERE         VarChar(4096) Default '',                                                   
-                           PARORDERBY       VarChar(1024) Default '')                                                   
-       Returns CLOB(16 M) CCSID 1208                                                                                    
-       Language SQL                                                                                                     
-       Modifies SQL Data                                                                                                
-       Specific Table2JSON                                                                                              
-       Not Fenced                                                                                                       
-       Not Deterministic                                                                                                
-       Called On Null Input                                                                                             
-       No External Action                                                                                               
-       Not Secured                                                                                                      
-       Set Option Datfmt  = *Iso,                                                                                       
-                  Dbgview = *Source,                                                                                    
-                  Decmpt = *PERIOD,                                                                                     
-                  DLYPRP = *Yes,                                                                                        
-                  Optlob = *Yes                                                                                         
-                                                                                                                        
-   Begin                                                                                                                
-     Declare LocColList Clob(1 M)             Default '';                                                               
-     Declare LocSQLCmd  Clob(2 M)             Default '';                                                               
-     Declare RtnJSON    Clob(16 M) CCSID 1208 Default '';                                                               
-                                                                                                                        
-     Declare Continue Handler for SQLException                                                                          
-             Begin                                                                                                      
-                Declare LocErrText VarChar(132) Default '';                                                             
-                Get Diagnostics Condition 1 LocErrText = MESSAGE_TEXT;                                                  
-           --   Return JSON_Object('Error': LocErrText);                                                                
-                Return JSON_Object('Error': LocSQLCMD);                                                                 
-             End;                                                                                                       
-                                                                                                                        
-     Set (ParTable, ParSchema) = (Upper(ParTable), Upper(ParSchema));                                                   
-                                                                                                                        
-     If Trim(ParWhere) > ''                                                                                             
-        Then Set ParWhere   = ' WHERE '    concat Trim(ParWhere)   concat ' ';                                          
-     End If;                                                                                                            
-                                                                                                                        
-     If Trim(ParOrderBy) > ''                                                                                           
-        Then Set ParOrderBY = ' ORDER BY ' concat Trim(ParOrderBy) concat ' ';                                          
-     End If;                                                                                                            
-                                                                                                                        
-     -- Build a List containing all columns of the specified columns                                                    
-     -- separated by a comma                                                                                            
-     Select ListAgg('''' concat Column_Name concat ''' : 'concat Column_Name,                                           
-                    ', ')                                                                                               
-            Into LocColList                                                                                             
-        From QSYS2.SysColumns                                                                                           
-        Where     Table_Schema = ParSchema                                                                              
-              and Table_Name   = ParTable;                                                                              
-     If Length(Trim(LocColList)) = 0 Then Signal SQLSTATE 'TMS95'                                                       
-        Set Message_Text = 'Table or Schema not Found';                                                                 
-     End If;                                                                                                            
-                                                                                                                        
-     Set LocSQLCmd =                                                                                                    
-         'Values(Select JSON_Object(''Table'' : '''  concat ParTable  concat ''',                                       
-                                    ''Schema'' : ''' concat ParSchema concat ''',                                       
-                                    ''Data'' : '   concat                                                               
-                         ' JSON_ArrayAgg(                                                                               
-                              JSON_Object(' concat Trim(LocColList) concat ')'                                          
-                                            concat ParOrderBy       concat '))                                          
-                   From ' concat Trim(ParSchema) concat '.'         concat                                              
-                                 Trim(ParTable)  concat                                                                 
-                   ParWhere                      Concat                                                                 
-                ' ) into ?';                                                                                            
-                                                                                                                        
-     Prepare DynSQL From LocSQLCmd;                                                                                     
-     Execute DynSQL using RtnJSON;                                                                                      
-     Return RtnJSON;                                                                                                    
-   End;                                                                                                                 
-                                                                                                                        
-Begin                                                                                                                   
-  Declare Continue Handler For SQLEXCEPTION Begin End;                                                                  
-   Label On Specific Function TABLE2JSON                                                                                
-      Is 'Convert a complete table into JSON data';                                                                     
-                                                                                                                        
-   Comment On Parameter Specific Routine TABLE2JSON                                                                     
-     (PARTABLE         Is 'Table - SQL Name',                                                                           
-      PARSCHEMA        Is 'Table Schema',                                                                               
-      PARWHERE         Is 'Additional WHERE conditions without leading WHERE',                                          
-      PARORDERBY       Is 'ORDER BY for sorting the output                                                              
-                           without leading ORDER BY');                                                                  
-                                                                                                                        
-End;                                                                                                   
+-- UDF: Convert a Table into a JSON Data
+-- Parameters: ParSelect        --> SQL Select-Statement to be converted
+--             ParRoot          --> Optional:  Name of the root element
+--                                             Default = "rowset"
+--             ParRow           --> Optional:  Name of the row element
+--                                             Default = "row"
+--             ParAsAttribute   --> Optional:  Y = a single empty element per row
+--                                                 all column values are included as attributes
+--*************************************************************************************************
+Create or Replace Function SELECT2JSON(
+                           ParSelect        VARCHAR(32700))
+       Returns CLOB(16 M) CCSID 1208
+       Language SQL
+       Modifies SQL Data
+       Specific SELECT2JSON
+       Not Fenced
+       Not Deterministic
+       Called On Null Input
+       No External Action
+       Not Secured
+
+       Set Option Datfmt  = *Iso,
+                  Dbgview = *Source,
+                  Decmpt  = *COMMA,
+                  DLYPRP  = *Yes,
+                  Optlob  = *Yes,
+                  SrtSeq  = *LangIdShr
+   --==============================================================================================
+   Begin
+     Declare GblView            VarChar(257)   Default '';
+     Declare GblViewName        VarChar(128)   Default '';
+     Declare GblViewSchema      VarChar(128)   Default '';
+
+     Declare GblSelectNoOrderBy VarChar(32700) Default '';
+     Declare GblOrderBy         VarChar(1024)  Default '';
+
+     Declare GblViewExists      SmallInt       Default 0;
+     Declare GblPos             Integer        Default 0;
+     Declare GblLastOrder       Integer        Default 0;
+     Declare GblOccurence       Integer        Default 0;
+
+     Declare RtnJSON            CLOB(16 M) CCSID 1208;
+
+     Declare Continue Handler for SQLSTATE '42704' Begin End;
+
+     Declare Continue Handler for SQLException
+             Begin
+                Declare LocErrText VarChar(128) Default '';
+                Get Diagnostics Condition 1 LocErrText = MESSAGE_TEXT;
+                Execute Immediate 'Drop View ' concat GblView;
+                Return JSON_Object('Error': LocErrText);
+             End;
+     ----------------------------------------------------------------------------------------------
+     Set GblViewName   = Trim('SELECT2JSON' concat
+                              Trim(Replace(qsys2.Job_Name, '/', '')));
+
+     Set GblViewSchema = Trim('QGPL');
+     Set GblView       = GblViewSchema concat '.' concat GblViewName;
+
+     If Trim(ParSelect) = ''
+        Then Return JSON_Object('Error':
+                                'Select Statement not passed');
+     End If;
+
+     --1. Find the last Order by in the SQL Statement (if any)
+     --   --> Split SQL Statement into SELECT and ORDER BY
+     StartLoop:
+          Repeat set GblOccurence = GblOccurence + 1;
+                 set GblPos = Locate_in_String(ParSelect,
+                                               'ORDER BY', 1, GblOccurence);
+                 If GblPos > 0
+                    Then Set GblLastOrder = GblPos;
+                 End If;
+          Until GblPos = 0 End Repeat;
+
+      If GblLastOrder > 0
+         Then Set GblSelectNoOrderBy = Substr(ParSelect, 1, GblLastOrder - 1);
+              Set GblOrderBy = Replace(Substr(ParSelect, GblLastOrder),
+                                       'ORDER BY', '');
+      Else Set GblSelectNoOrderBy = Trim(ParSelect);
+           Set GblOrderBY         = '' ;
+      End If;
+
+      --2. Drop View if it already exists
+      Select 1 into GblViewExists
+        From SysTables
+        Where     Table_Name   = GblViewName
+              and Table_Schema = GblViewSchema
+      Fetch First Row Only;
+
+      If GblViewExists = 1
+         Then Execute Immediate 'Drop View ' concat GblView;
+      End If;
+
+      --3. Create View
+      Execute Immediate 'Create View '  concat GblView            concat
+                                ' as (' concat GblSelectNoOrderBy concat ' )';
+
+      --4. Generate JSON Document (by calling TABLE2JSON)
+      Set RtnJSON = Table2JSON(GblViewName, GblViewSchema, '', GblOrderBy);
+
+      --5. Drop View
+      Execute Immediate 'Drop View ' concat GblView;
+
+      Return RtnJSON;
+   End;
+
+Begin
+  Declare Continue Handler For SQLEXCEPTION Begin End;
+   Label On Specific Function SELECT2JSON
+      Is 'Convert a Select Statement into JSON';
+
+   Comment On Parameter Specific Routine SELECT2JSON
+     (PARSELECT        Is 'Select Statement',
+      PARORDERBY       Is 'ORDER BY for sorting the output
+                           without leading ORDER BY',
+      PARRoot          Is 'Root element name --> Default "rowset"',
+      PARRow           Is 'Row element name --> Default "row"',
+      PARAsAttributes  Is 'Y = Return a single element per row
+                               all column values are returned as attributes');
+End;                                                                        
