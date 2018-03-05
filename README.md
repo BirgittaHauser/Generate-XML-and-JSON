@@ -123,6 +123,15 @@ Call WrtXML2IFS_Create(Table2XML('SALES', 'HSCOMMON10',
 <tr><td><b>ParOrderBy   </b></td><td>VarChar(1024)   </td><td>Order by clause (without leading ORDER BY)<br> 
                                                      for sorting the result<br> 
                                                      (Optional => Default = ‘’)</td><tr>
+<tr><td><b>ParInclTableInfo</b></td><td>VarChar(1)</td><td>Including Table and Schema information<br>
+	                                                   Any value except blank --> Table/Schema information is included</td>	
+<tr><td><b>ParDataName      </b></td><td>VarChar(128)</td><td>Name of the data Array --> Default = "Data"</td>	
+<tr><td><b>ParInclSuccess   </b></td><td>VarChar(1)</td><td>Includes "success":true and "errmsg":"" 
+	                                                    at the beginning of the data
+	                                                    Any value except blank 
+	                                                    --> success/errmsg information is included </td>	
+<tr><td><b>ParNamesLower    </b></td><td>VarChar(1)</td><td>Converts the keynames into lower case
+	                                                    Any value except blank --> keynames are converted into lower case</td>		
 </table>
                
  #### Description:
@@ -134,6 +143,8 @@ Call WrtXML2IFS_Create(Table2XML('SALES', 'HSCOMMON10',
  The structure of the resulting JSON data looks as follows:
  <pre>
  {
+	"success": true,
+	"errmsg": "",
 	"Table": "TABLENAME",
 	"Schema": "TBLSCHEMA",
 	"Data": [{
@@ -153,14 +164,23 @@ Call WrtXML2IFS_Create(Table2XML('SALES', 'HSCOMMON10',
 Values(Table2JSON('ADDRESSX', 'HSCOMMON10',
                   ParWhere     => 'ZipCode between ''70000'' and ''80000''',
                   ParOrderBy   => 'ZipCode, CustNo'));</pre>   
- 
+
+<pre>
+Values(Table2JSON('ADDRESSX', 'HSCOMMON10',
+                  ParWhere       => 'ZipCode between ''70000'' and ''80000''',
+                  ParOrderBy     => 'ZipCode, CustNo'),
+		  ParDataName    => 'AddressInfo',
+		  ParInclSuccess => '1',
+		  ParNamesLower  => '1');</pre>   
+
 <pre>
 Call WrtJSON2IFS_Create(Table2JSON('SALES', 'HSCOMMON10', 
                                    ParWhere    => 'Year(SalesDate) = 2017', 
                                    ParOrderBy  => 'SalesDate, CustNo Desc',
                                    ParRoot     => '"Sales"'),         
                         '/home/Hauser/Umsatz20180224.json');</pre> 
-                        
+
+
 ### SELECT2XML – Create a XML document based on an Select-Statement
 #### Parameter: 
 <table>  
@@ -218,6 +238,14 @@ Values(Select2XML('With Pos as (Select Company, OrderNo, Count(*) NbrOfPositions
 <table>  
 <tr><th>Parameter Name</th><th>Data Type/Length</th><th>Description</th></tr>  
 <tr><td><b>ParSelect       </b></td><td>VarChar(32700)  </td><td>SQL Select-Statement to be converted into XML</td><tr>
+<tr><td><b>ParDataName     </b></td><td>VarChar(128)    </td><td>Name of the Data Array --> Default = "Data"</td></tr>
+<tr><td><b>PARInclSuccess  </b></td><td>VarChar(1)      </td><td>Includes "success"=true, "errmsg"="" 
+	                                                         at the beginning of the data<br>
+	                                                         Any value except blank --> success/errmsg is included</td></tr>
+<tr><td><b>ParNamesLower   </b></td><td>VarChar(1)      </td><td>Converts the keynames into lower case<br>
+	                                                         Any value except blank 
+	                                                         --> keynames are converted into lowercase</td></tr>)
+	
 </table>  
 
 #### Description:
@@ -244,6 +272,18 @@ Values(Select2JSON('Select Year(SalesDate) as SalesYear, CustNo, Sum(Amount) Tot
                      Group By Year(SalesDate), CustNo
                      Order By SalesYear'));
 </pre>		     
+
+<pre>
+Values(Select2JSON('Select Year(SalesDate) as SalesYear, CustNo, Sum(Amount) Total 
+                     From Sales
+                     Where CustNo in (''10001'', ''10003'')
+                     Group By Year(SalesDate), CustNo
+                     Order By SalesYear'),
+		     ParDataName    => "SalesCustYear",
+		     ParInclSuccess => '1',
+		     ParNamesLower  => '1');
+</pre>		     
+
 
 Select Statement with Group By and Order By Clauses.
 Generated columns Year(SalesDate) and Sum(Amount) are named, i.e. Year(SalesDate) --> SalesYear and Sum(Amount) 
