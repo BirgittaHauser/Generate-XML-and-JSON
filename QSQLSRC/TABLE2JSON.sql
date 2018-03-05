@@ -6,12 +6,21 @@
 --                                             leading WHERE must not be specified                                      
 --             ParOrderBy       --> Optional:  ORDER BY clause for returning the data in a predefined sequence          
 --                                             leading ORDER BY must not be specified                                   
+-- Enhanced: 2018-03-02 - B.Hauser                                                                                      
+--             ParInclTableInfo --> Optional:  Any value > ' ' --> Table Info is included                               
+--             ParDataName      --> Optional:  Name of the data array --> Default = "Data"                              
+--             ParInclSuccess   --> Optional:  Any Value > ' ' --> Success/Error Message are included                   
+--             ParNamesLower    --> Optional:  Any value > ' ' --> Array and object names in lowercase                  
 -----------------------------------------------------------------                                                       
 Create or Replace Function TABLE2JSON(                                                                                  
                            PARTABLE         VARCHAR(128),                                                               
                            PARSCHEMA        Varchar(128),                                                               
                            PARWHERE         VarChar(4096) Default '',                                                   
-                           PARORDERBY       VarChar(1024) Default '')                                                   
+                           PARORDERBY       VarChar(1024) Default '',                                                   
+                           PARINCLTABLEINFO VarChar(1)    Default '',                                                   
+                           PARDATANAME      VarChar(128)  Default 'Data',                                               
+                           PARINCLSUCCESS   VarChar(1)    Default '',                                                   
+                           ParNamesLower    VarChar(1)    Default '')                                                   
        Returns CLOB(16 M) CCSID 1208                                                                                    
        Language SQL                                                                                                     
        Modifies SQL Data                                                                                                
@@ -22,6 +31,7 @@ Create or Replace Function TABLE2JSON(
        No External Action                                                                                               
        Not Secured                                                                                                      
        Set Option Datfmt  = *Iso,                                                                                       
+                  Commit  = *None,                                                                                      
                   Dbgview = *Source,                                                                                    
                   Decmpt = *PERIOD,                                                                                     
                   DLYPRP = *Yes,                                                                                        
@@ -30,6 +40,8 @@ Create or Replace Function TABLE2JSON(
    Begin                                                                                                                
      Declare LocColList Clob(1 M)             Default '';                                                               
      Declare LocSQLCmd  Clob(2 M)             Default '';                                                               
+     Declare LocEmpty   VarChar(1)            Default '';                                                               
+                                                                                                                        
      Declare RtnJSON    Clob(16 M) CCSID 1208 Default '';                                                               
                                                                                                                         
      Declare Continue Handler for SQLException                                                                          
@@ -41,6 +53,25 @@ Create or Replace Function TABLE2JSON(
              End;                                                                                                       
                                                                                                                         
      Set (ParTable, ParSchema) = (Upper(ParTable), Upper(ParSchema));                                                   
+     Set ParInclTableInfo      = Case When Trim(ParInclTableInfo) > ''                                                  
+                                      Then '1'                                                                          
+                                      Else ''                                                                           
+                                 End;                                                                                   
+                                                                                                                        
+     Set ParInclSuccess        = Case When Trim(ParInclSuccess) > ''                                                    
+                                      Then '1'                                                                          
+                                      Else ''                                                                           
+                                 End;                                                                                   
+                                                                                                                        
+     Set ParNamesLower         = Case When Trim(ParNamesLower) > ''                                                     
+                                      Then '1'                                                                          
+                                      Else ''                                                                           
+                                 End;                                                                                   
+                                                                                                                        
+     Set ParDataName           = Case When ParNamesLower = '1'                                                          
+                                      Then Lower(ParDataName)                                                           
+                                      Else ParDataName                                                                  
+                                      End;                                                                              
                                                                                                                         
      If Trim(ParWhere) > ''                                                                                             
         Then Set ParWhere   = ' WHERE '    concat Trim(ParWhere)   concat ' ';                                          
@@ -52,7 +83,11 @@ Create or Replace Function TABLE2JSON(
                                                                                                                         
      -- Build a List containing all columns of the specified columns                                                    
      -- separated by a comma                                                                                            
-     Select ListAgg('''' concat Column_Name concat ''' : 'concat Column_Name,                                           
+     Select ListAgg('''' concat   case When ParNamesLower = '1'                                                         
+                                       Then Lower(Column_Name)                                                          
+                                       Else Column_Name End                                                             
+                                  --  Lower(Column_Name)                                                                
+                    concat ''' : 'concat Column_Name,                                                                   
                     ', ')                                                                                               
             Into LocColList                                                                                             
         From QSYS2.SysColumns                                                                                           
@@ -62,17 +97,27 @@ Create or Replace Function TABLE2JSON(
         Set Message_Text = 'Table or Schema not Found';                                                                 
      End If;                                                                                                            
                                                                                                                         
-     Set LocSQLCmd =                                                                                                    
-         'Values(Select JSON_Object(''Table'' : '''  concat ParTable  concat ''',                                       
-                                    ''Schema'' : ''' concat ParSchema concat ''',                                       
-                                    ''Data'' : '   concat                                                               
-                         ' JSON_ArrayAgg(                                                                               
-                              JSON_Object(' concat Trim(LocColList) concat ')'                                          
-                                            concat ParOrderBy       concat '))                                          
-                   From ' concat Trim(ParSchema) concat '.'         concat                                              
-                                 Trim(ParTable)  concat                                                                 
-                   ParWhere                      Concat                                                                 
-                ' ) into ?';                                                                                            
+    Set LocSQLCmd =                                                                                                     
+        'Values(Select JSON_Object('                                                                                    
+                      Concat                                                                                            
+                      Case When ParInclSuccess = '1'                                                                    
+                           then '''success'': ''true'' Format JSON,                                                     
+                                 ''errmsg'' : '''', '                                                                   
+                           Else LocEmpty End                                                                            
+                      Concat                                                                                            
+                      Case When ParInclTableInfo = '1'                                                                  
+                           Then '''Table''  : ''' concat ParTable  concat ''',                                          
+                                 ''Schema'' : ''' concat ParSchema concat ''', '                                        
+                           Else LocEmpty End                                                                            
+                      Concat    '''' concat Trim(ParDataName) concat ''': '                                             
+                      concat                                                                                            
+                        ' JSON_ArrayAgg(                                                                                
+                             JSON_Object(' concat Trim(LocColList) concat ')'                                           
+                                           concat ParOrderBy       concat '))                                           
+                  From ' concat Trim(ParSchema) concat '.'         concat                                               
+                                Trim(ParTable)  concat                                                                  
+                  ParWhere                      Concat                                                                  
+               ' ) into ?';                                                                                             
                                                                                                                         
      Prepare DynSQL From LocSQLCmd;                                                                                     
      Execute DynSQL using RtnJSON;                                                                                      
@@ -89,6 +134,11 @@ Begin
       PARSCHEMA        Is 'Table Schema',                                                                               
       PARWHERE         Is 'Additional WHERE conditions without leading WHERE',                                          
       PARORDERBY       Is 'ORDER BY for sorting the output                                                              
-                           without leading ORDER BY');                                                                  
-                                                                                                                        
-End;                                                                                                             
+                           without leading ORDER BY',                                                                   
+      PARINCLTABLEINFO Is 'Any Value --> Table Info (TableName/Schema)                                                  
+                           is included',                                                                                
+      PARDATANAME      Is 'Data name --> Default = "Data"',                                                             
+      PARINCLTABLEINFO Is 'Any Value --> success and errormsg are included',                                            
+      PARNAMESLOWER    Is 'Any Value -->                                                                                
+                           convert all column names into lower Case');                                                  
+End;                                                                              
